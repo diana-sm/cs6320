@@ -19,15 +19,20 @@ class PostgresEnv(gym.Env):
             [[param.min_val-param.max_val, param.max_val-param.min_val] for param in parameters]
             )
         
-        # Observation space: average throughput in queries/second
+        # Observation space: observe the current parameter config
+        self.observation_space = spaces.MultiDiscrete(
+            [[param.min_val, param.max_val] for param in parameters]
+            )
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=1)
 
     def step(self, action):
         # change the parameter configurations (making sure to keep the min and max bounds)
-        for param, delta in parameters, action:
+        for param, delta in self.parameters, action:
             new_val = param.current_val + delta
             new_val = max(new_val, param.min_val)
             new_val = min(new_val, param.max_val)
+        
+        observation = np.array([param.current_val for param in self.parameters])
         
         # TODO: set new parameter values in postgres
         # TODO: run benchmark with new value, get observation
@@ -40,7 +45,8 @@ class PostgresEnv(gym.Env):
             param.current_val = param.default_val
         
         # TODO: reset parameter values in postgres
-        # TODO: run benchmark, get observations
+
+        observation = np.array([param.current_val for param in self.parameters])
         return observation
 
     def render(self, mode='human'):
