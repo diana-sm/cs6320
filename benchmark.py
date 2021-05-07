@@ -8,13 +8,12 @@ class Automator:
         #     raise Exception("This script must be run with sudo permissions")
         
         #ASSUME REPO IS ON SAME LEVEL AS OLTPBENCH FOLDER
-        os.system("sudo -u cd ..")
-        os.system("sudo -u cd oltpbench/")
+        os.chdir("../oltpbench")
 
     def run_data(self, should_load = True):
         if should_load:
-            os.system("sudo -u ./oltpbenchmark -b tpcc -c config/tpcc_config_postgres.xml --create=true --load=" + str(should_load))
-        os.system("sudo -u ./oltpbenchmark -b tpcc -c config/tpcc_config_postgres.xml --create=true --load=" + str(should_load) + " --execute=true -s 5 -o outputfile")
+            os.system("sudo ./oltpbenchmark -b tpcc -c config/tpcc_config_postgres.xml --create=true --load=" + str(should_load))
+        os.system("sudo ./oltpbenchmark -b tpcc -c config/tpcc_config_postgres.xml --create=true --load=" + str(should_load) + " --execute=true -s 5 -o outputfile")
 
 
     def get_throughput(self):
