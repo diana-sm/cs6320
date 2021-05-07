@@ -21,7 +21,8 @@ class Automator:
         file_path = os.path.join(script_dir, 'outputfile.6.res')
         with open(file_path, "r") as f:
             all_lines = f.readlines()
-            print(all_lines[-1])
+            res = all_lines[-1].split(",")[1]
+            print(res)
             # while True:
             #     line = f.readline()
             #     if not line:
