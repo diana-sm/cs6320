@@ -2,8 +2,11 @@ import sys, os
 
 class Automator:
     def __init__(self):
-        if os.geteuid() != 0:
-            raise Exception("This script must be run with sudo permissions")
+        #seems like good check but geteuid is default to 0 unless you
+        #set it with "setiod()" (can figure this out later)
+        # if os.geteuid() != 0:
+        #     raise Exception("This script must be run with sudo permissions")
+        
         #ASSUME REPO IS ON SAME LEVEL AS OLTPBENCH FOLDER
         os.system("sudo -u cd ..")
         os.system("sudo -u cd oltpbench/")
@@ -14,7 +17,7 @@ class Automator:
         os.system("sudo -u ./oltpbenchmark -b tpcc -c config/tpcc_config_postgres.xml --create=true --load=" + str(should_load) + " --execute=true -s 5 -o outputfile")
 
 
-    def get_throughput():
+    def get_throughput(self):
         #CHANGE PATH BASED ON WHERE YOU WANT TO USE IT
         #TODO AUTOMATE THIS
         script_dir = os.path.dirname("/results")
