@@ -6,4 +6,4 @@ class Parameter:
     min_val: int
     max_val: int
     default_val: int
-    current_val = default_val
+    current_val: int
