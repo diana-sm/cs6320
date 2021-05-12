@@ -39,7 +39,7 @@ class OLTPAutomator:
             #     res = line.split(",")
             #     print(res[1])
             f.close()
-            return(res)
+            return(float(res))
 
     # this function BOTH drops the tables AND creates new ones, so it can basically just be used every x times we run the benchmark
     # setting "--clear=true" has some issues-- the db is inferred to have no type so it kind of just crashes...

@@ -29,7 +29,9 @@ io_concurrency = Parameter("effective_io_concurrency", 1, 1000, 1, 1)
 parameters = [random_page_cost, io_concurrency]
 
 # create the env with the parameters
-env = make_vec_env('Postgres-v0', env_kwargs=parameters)
+env = gym.make('Postgres-v0', parameters=parameters)
+#env = make_vec_env('Postgres-v0', env_kwargs={'parameters': parameters})
+print(type(env))
 check_env(env)
 
 # initialize model
@@ -39,7 +41,7 @@ model = PPO("MlpPolicy", env, verbose=1)
 
 # learn
 start = datetime.now()
-model.learn(total_timesteps=10)
+model.learn(total_timesteps=5)
 end = datetime.now()
 print(f'training time: {end-start}')
 
@@ -49,8 +51,8 @@ states = []
 all_rewards = []
 
 # run the trained model
-for i in range(10):
-  # print(f'step {i}')
+for i in range(5):
+  print(f'trained model step {i}')
   action, _states = model.predict(obs)
   obs, rewards, done, info = env.step(action)
   env.render()
