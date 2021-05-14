@@ -27,17 +27,15 @@ class OLTPAutomator:
         #CHANGE PATH BASED ON WHERE YOU WANT TO USE IT
         #TODO AUTOMATE THIS
         file_path = os.path.join("./results", 'outputfile.res')
+
+        #if the parameter is not sufficient to run the benchmark (i.e. not enough mem), oltpbench will error out and not produce a results file
+        #if this is the case, then we assume the worst and say that throughput was infinitely awful.
+        if not os.path.isfile(file_path):
+            return -10000000.0
+
         with open(file_path, "r") as f:
             all_lines = f.readlines()
             res = all_lines[-1].split(",")[1]
-            #print(res)
-            # while True:
-            #     line = f.readline()
-            #     if not line:
-            #         break
-            #     #res = line.strip()
-            #     res = line.split(",")
-            #     print(res[1])
             f.close()
             return(float(res))
 

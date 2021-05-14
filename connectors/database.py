@@ -17,8 +17,10 @@ class PGConn():
         self.run_command("sudo -u postgres psql -c " + query)
         self.run_command("sudo -u postgres psql -c 'SELECT pg_reload_conf();'")
 
-    def restart(self):
+    def restart(self, drop_caches = False):
         self.run_command("sudo su - root -c 'systemctl stop postgresql'")
+        if drop_caches:
+            self.run_command("sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'")
         self.run_command("sudo su - root -c 'systemctl start postgresql'")
 
     def reset(self):
@@ -38,8 +40,11 @@ class MySQLConn():
         self.run_command("sudo mysql -u root -e " + query)
         # mysql system variables don't need to be manually reloaded so no extra call here
 
-    def restart(self):
-        self.run_command("sudo service mysql restart")
+    def restart(self, drop_caches = False):
+        
+        if drop_caches:
+            self.run_command("sudo service mysql restart")
+        self.run_command("sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'")
     
     def reset(self):
         self.run_command("sudo mysql -u root -e 'RESET PERSIST;'")

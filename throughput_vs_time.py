@@ -3,12 +3,15 @@ from connectors.database import PGConn
 import os
 import time
 
-#EXAMPLE FILE FOR HOW TO USE DATABASE AND BENCHMARK CONNECTORS
+#why use python file api when os do trick?
+os.system("rm throughput_vs_time1.csv")
+os.system("touch throughput_vs_time1.csv")
 
 p = PGConn(suppress_logging=True)
 a = OLTPAutomator(suppress_logging=True)
 #reset to start from clean slate
 p.reset()
+p.restart()
 
 #========
 #should reinit periodically, but not every run (this can take several minutes to do depending on scale factor, which we will want to set reasonably high-- should probably wait for every 20th+ run or something)
@@ -19,20 +22,12 @@ print("Reinit time:", time.time() - start_time)
 #========
 
 start_time = time.time()
-#NOTE: for some reason kilobytes needs a lowercase "k"-- be careful about this one
-for i in ['"128 kB"', '"256 kB"', '"512 kB"', '"1 GB"', '"2 GB"', '"4 GB"', '"8 GB"']:
-    #TODO: decide on better intervals (I just went with powers of two)
-
-    
-    p.param_set("shared_buffers", i)
-    p.restart()
-
-    #can use this line to verify that params were changed successfully
-    #os.system("sudo -u postgres psql -c 'SHOW effective_io_concurrency'")
-
+for i in range(8638,10000):
     a.run_data()
-    print(a.get_throughput())
-print("Benchmark time:", time.time() - start_time)
+    tps = a.get_throughput()
+    print(i, tps)
+    os.system("echo '{},{}' >> ../throughput_vs_time1.csv".format(i, tps))
+print("Experiment time:", time.time() - start_time)
 # reset after done, just in case
 p.reset()
 
