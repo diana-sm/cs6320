@@ -9,10 +9,9 @@ a = OLTPAutomator(suppress_logging=True)
 p.reset()
 
 #========
-#should reinit periodically, but not every run (this can take several minutes to do depending on scale factor, which we will want to set reasonably high-- should probably wait for every 20th+ run or something)
-#because this example script just does 2 runs, I put it outside the loop and leave it commented most of the time-- with more iterations, it should be factored into the loop somehow
+#reinits are fast now (sub-10 seconds)
 start_time = time.time()
-a.reinit_database()
+p.reinit_database()
 print("Reinit time:", time.time() - start_time)
 #========
 
@@ -39,7 +38,7 @@ for param, metrics in param_dict.items():
     # restart after every set of param has fully iterated through its list of metrics
     # reinit after every param is done going through its metrics
     p.restart()
-    a.reinit_database()
+    p.reinit_database()
     print("Reinit time:", time.time() - start_time)
 
 print("Benchmark time:", time.time() - start_time)

@@ -27,6 +27,10 @@ class PGConn():
         self.run_command("sudo -u postgres psql -c 'ALTER SYSTEM RESET ALL;'")
         #self.run_command("sudo -u postgres psql -c 'SELECT pg_reload_conf();'")
         self.restart() #changed to hard restart becuse some system params need it to be reloaded
+    
+    def reinit_database(self):
+        self.run_command("sudo -u postgres psql -c 'DROP DATABASE tpcc;'")
+        self.run_command("sudo -u postgres psql -c 'CREATE DATABASE tpcc WITH TEMPLATE tpcctemplate;'")
 
 class MySQLConn():
 
@@ -49,6 +53,13 @@ class MySQLConn():
     def reset(self):
         self.run_command("sudo mysql -u root -e 'RESET PERSIST;'")
         self.restart()
+
+        
+
+    def reinit_database(self):
+        self.run_command("sudo mysql -u root -e 'DROP DATABASE tpcc;'")
+        self.run_command("sudo mysql -u root -e 'CREATE DATABASE tpcc;'")
+        self.run_command("sudo mysqldump -u root tpcctemplate | sudo mysql -u root tpcc'")
 
 #============
 #==EXAMPLES==

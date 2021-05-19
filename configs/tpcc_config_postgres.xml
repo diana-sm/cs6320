@@ -4,7 +4,7 @@
     <!-- Connection details -->
     <dbtype>postgres</dbtype>
     <driver>org.postgresql.Driver</driver>
-    <DBUrl>jdbc:postgresql://localhost:5432/6320tpcc</DBUrl>
+    <DBUrl>jdbc:postgresql://localhost:5432/tpcc</DBUrl>
     <username>postgres</username>
     <password>postgres</password>
     <isolation>TRANSACTION_READ_COMMITTED</isolation>
@@ -18,7 +18,7 @@
     <terminals>4</terminals>
     <works>
         <work>
-          <time>3</time>
+          <time>10</time>
 		  <warmup>0</warmup>
           <rate>10000</rate>
           <ratelimited bench="tpcc">true</ratelimited>

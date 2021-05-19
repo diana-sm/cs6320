@@ -5,16 +5,15 @@ import time
 
 #EXAMPLE FILE FOR HOW TO USE DATABASE AND BENCHMARK CONNECTORS
 
-p = PGConn(suppress_logging=True)
-a = OLTPAutomator(suppress_logging=True)
+p = PGConn(suppress_logging=False)
+a = OLTPAutomator(suppress_logging=False)
 #reset to start from clean slate
 p.reset()
 
 #========
-#should reinit periodically, but not every run (this can take several minutes to do depending on scale factor, which we will want to set reasonably high-- should probably wait for every 20th+ run or something)
-#because this example script just does 2 runs, I put it outside the loop and leave it commented most of the time-- with more iterations, it should be factored into the loop somehow
+#reinits are fast now
 start_time = time.time()
-#a.reinit_database()
+p.reinit_database()
 print("Reinit time:", time.time() - start_time)
 #========
 

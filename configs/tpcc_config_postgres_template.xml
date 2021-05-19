@@ -2,17 +2,19 @@
 <parameters>
 	
     <!-- Connection details -->
-    <dbtype>mysql</dbtype>
-    <driver>com.mysql.jdbc.Driver</driver>
-    <DBUrl>jdbc:mysql://localhost:3306/6320tpcc?useSSL=false</DBUrl>
-    <username>debian-sys-maint</username>
-    <password>XT8yzKzorSzWMX0J</password>
+    <dbtype>postgres</dbtype>
+    <driver>org.postgresql.Driver</driver>
+    <DBUrl>jdbc:postgresql://localhost:5432/tpcctemplate</DBUrl>
+    <username>postgres</username>
+    <password>postgres</password>
     <isolation>TRANSACTION_READ_COMMITTED</isolation>
     
     <!-- Scale factor is the number of warehouses in TPCC -->
+	<!-- Should approx be 2gb, would like to do more but the server we were given has only 2 virt cores so it's really slow.... -->
     <scalefactor>20</scalefactor>
     
     <!-- The workload -->
+	<!-- God this server is pathetic, we get 40 rps -->
     <terminals>4</terminals>
     <works>
         <work>
@@ -24,7 +26,7 @@
         </work>
 	</works>
 	
-	<!-- TPCC specific -->  	
+	<!-- TPCC specific -->  
    	<transactiontypes>
     	<transactiontype>
     		<name>NewOrder</name>
