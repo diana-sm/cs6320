@@ -44,8 +44,7 @@ class OLTPAutomator:
     # the good news is that the create flag already did this for us, see oltpbench/build/com/oltpbenchmark/benchmarks/tpcc/ddls/tpcc-postgres-ddl.sql
 
     # NOTE: use this function sparingly, as it does take some time to finish.... We definitely don't want to reinit for every single benchmark run
-    def reinit_database(self):
-        self.run_command("sudo ./oltpbenchmark -b tpcc -c ../configs/{} --create=true --load=true".format(self.benchmark))
+
 
 if __name__ == "__main__":
     a = OLTPAutomator()
