@@ -8,11 +8,11 @@ from connectors.database import PGConn
 from connectors.benchmark import OLTPAutomator
 
 
-class PostgresEnv(gym.Env):
+class PostgresEnvContinuous(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, parameters):
-        super(PostgresEnv, self).__init__()
+        super(PostgresEnvContinuous, self).__init__()
 
         # The list of parameters we configure
         self.parameters = parameters
@@ -54,7 +54,7 @@ class PostgresEnv(gym.Env):
             new_val = min(param.max_val, new_val)
             if new_val != param.current_val:
                 param.current_val = new_val
-                self.postgres_connector.param_set(param.name, param.current_val)
+                self.postgres_connector.param_set(param.name, str(param.current_val) + param.suffix)
         
         print(f'new parameters: {[(param.name, param.current_val) for param in self.parameters]}')
         
@@ -66,9 +66,9 @@ class PostgresEnv(gym.Env):
 
         print(f'throughput: {reward}')
 
-        # for now, say we are done after taking 1000 steps
+        # end each episode after 8 steps
         self.steps_taken += 1
-        done = (self.steps_taken == 5)
+        done = (self.steps_taken == 8)
         # print(observation)
 
         return observation, reward, done, {}
@@ -89,6 +89,90 @@ class PostgresEnv(gym.Env):
 
         print(observation)
         print("-"*100)
+        return observation
+
+    def render(self, mode='human'):
+        pass
+
+    def close (self):
+        pass
+
+class PostgresEnvDiscrete(gym.Env):
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, parameters, baseline_throughput):
+        super(PostgresEnvDiscrete, self).__init__()
+
+        # The list of parameters we configure
+        self.parameters = parameters
+
+        # the connectors
+        self.postgres_connector = PGConn()
+        self.oltp_connector = OLTPAutomator(suppress_logging=True)
+        #self.oltp_connector.reinit_database()
+
+        # Action space: 2xN - each action represents incrementing or decrementing a parameter
+        self.action_space = spaces.Discrete(2*len(parameters))
+        
+        # Observation space: observe the current parameter config
+        self.observation_space = spaces.Box(
+                low=np.array([param.min_val for param in parameters]),
+                high=np.array([param.max_val for param in parameters]),
+                dtype=np.float32)
+
+        self.steps_taken = 0
+
+        self.prev_throughput = baseline_throughput
+        
+        print(self.action_space)
+
+    def step(self, action):
+        print(f'step {self.steps_taken}')
+        print(f'action: {action}')
+
+        # change the configuration for the chosen parameter
+        index = action // 2
+        inc = action % 2
+        param = self.parameters[index]
+
+        print(f'new value for {param.name} : {param.current_val}')
+
+        if inc:
+            param.current_val += param.granularity
+        else:
+            param.current_val -= param.granularity
+        
+        print(f'new value for {param.name} : {param.current_val}')
+
+        self.postgres_connector.param_set(param.name, str(param.current_val) + param.suffix)
+        observation = np.array([param.current_val for param in self.parameters])
+        
+        # run the benchmark
+        self.oltp_connector.run_data()
+        reward = self.oltp_connector.get_throughput()
+
+        print(f'throughput: {reward}')
+
+        # for now, end each episode after one step
+        self.steps_taken += 1
+        done = (self.steps_taken == 1)
+        # print(observation)
+
+        return observation, reward, done, {}
+
+    def reset(self):
+        self.steps_taken = 0
+        
+        # reset parameter values
+        for param in self.parameters:
+            if param.current_val != param.default_val:
+                param.current_val = param.default_val
+                self.postgres_connector.param_set(param.name, param.current_val + param.suffix)
+        
+        observation = np.array([param.current_val for param in self.parameters])
+        
+        # self.oltp_connector.reinit_database()
+
         return observation
 
     def render(self, mode='human'):

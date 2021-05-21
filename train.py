@@ -20,16 +20,20 @@ register(
 ) 
 register(
     id='Postgres-v0',
-    entry_point='envs.postgres_env:PostgresEnv'
+    entry_point='envs.postgres_env:PostgresEnvContinuous'
+)
+register(
+    id='Postgres-v1',
+    entry_point='envs.postgres_env:PostgresEnvDiscrete'
 )
 
 # initialize parameters
-random_page_cost = Parameter("random_page_cost", 1, 4, 4, 4)
-io_concurrency = Parameter("effective_io_concurrency", 1, 1000, 1, 1)
+random_page_cost = Parameter("random_page_cost", "", 1, 4, 4, 4, 0.5)
+io_concurrency = Parameter("effective_io_concurrency", "", 1, 1000, 1, 1, 10)
 parameters = [random_page_cost, io_concurrency]
 
 # create the env with the parameters
-env = gym.make('Postgres-v0', parameters=parameters)
+env = gym.make('Postgres-v0', parameters=parameters, baseline_throughput=62)
 #env = make_vec_env('Postgres-v0', env_kwargs={'parameters': parameters})
 print(type(env))
 check_env(env)
