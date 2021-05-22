@@ -16,6 +16,9 @@ class PGConn():
         query = "'ALTER SYSTEM SET {} = {};'".format(name, value)
         self.run_command("sudo -u postgres psql -c " + query)
         self.run_command("sudo -u postgres psql -c 'SELECT pg_reload_conf();'")
+    
+    def show_value(self, name):
+       self.run_command("sudo -u postgres psql -c 'show {};'".format(name))
 
     def restart(self, drop_caches = False):
         self.run_command("sudo su - root -c 'systemctl stop postgresql'")

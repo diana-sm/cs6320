@@ -6,30 +6,30 @@ import numpy as np
 
 from connectors.database import PGConn
 from connectors.benchmark import OLTPAutomator
+from parameter import create_parameters
 
 
 class PostgresEnvDiscrete(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, parameters, baseline_throughput, logger = open('log.txt', 'a+')):
+    def __init__(self, baseline_throughput, logger = open('log.txt', 'a+')):
         super(PostgresEnvDiscrete, self).__init__()
 
-        # The list of parameters we configure
-        self.parameters = parameters
-
         # the connectors
-        #self.postgres_connector = PGConn()
+        self.postgres_connector = PGConn()
         self.oltp_connector = OLTPAutomator(suppress_logging=True)
         #self.oltp_connector.reinit_database()
 
+        self.parameters = create_parameters(self.postgres_connector)
+
         # Action space: 2xN - each action represents incrementing or decrementing a parameter
-        self.action_space = spaces.Discrete(2*len(parameters))
+        self.action_space = spaces.Discrete(2*len(self.parameters))
         
         # Observation space: observe the current parameter config
         self.observation_space = spaces.Box(
-                low=np.array([param.min_val for param in parameters]),
-                high=np.array([param.max_val for param in parameters]),
-                dtype=np.int)
+                low=np.array([param.min_val for param in self.parameters]),
+                high=np.array([param.max_val for param in self.parameters]),
+                dtype=np.float)
 
         self.episode = 0
         self.steps_taken = 0
@@ -39,7 +39,8 @@ class PostgresEnvDiscrete(gym.Env):
         self.prev_throughput = baseline_throughput
 
         self.logger = logger
-
+        
+        self.updated_restart_parameter = False
         self.reset()
 
     def step(self, action):
@@ -58,12 +59,14 @@ class PostgresEnvDiscrete(gym.Env):
         print(f'old value for {param.name}: {param.current_val}')
         self.logger.write(f'\n\t\t\told value for {param.name}: {param.current_val}')
         
-        changed_value = False
         if inc:
-            changed_value = param.inc()
+            param.inc()
         else:
-            changed_value = param.dec()
+            param.dec()
         
+        if param.requires_restart:
+            self.updated_restart_parameter = True
+            
         print(f'new value for {param.name}: {param.current_val}')
         self.logger.write(f'\n\t\t\tnew value for {param.name}: {param.current_val}')
         
@@ -93,8 +96,13 @@ class PostgresEnvDiscrete(gym.Env):
         self.logger.write(f'\n\tepisode {self.episode}')
         
         # reset parameter values
+        self.postgres_connector.reset()
+        if self.updated_restart_parameter:
+            self.postgres_connector.restart()
         for param in self.parameters:
-            param.reset()
+            param.reset(update_db=False)
+
+        self.updated_restart_parameter = False
         
         self.state = np.array([param.current_val for param in self.parameters])
         
