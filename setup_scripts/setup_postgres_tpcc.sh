@@ -7,7 +7,7 @@ echo "====creating new dbs===="
 
 sudo -u postgres psql -c 'CREATE DATABASE tpcctemplate;'
 
-cd oltpbench
+cd ../oltpbench
 
 echo "====loading template dbs===="
 
@@ -17,4 +17,4 @@ echo "====copying templates to live===="
 
 sudo -u postgres psql -c 'CREATE DATABASE tpcc WITH TEMPLATE tpcctemplate;'
 
-cd ..
+cd ../setup_scripts
