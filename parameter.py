@@ -14,6 +14,8 @@ class NumParameter:
     log_scale: bool
     connector: PGConn = None
     requires_restart: bool = False
+    requires_analyze: bool = False
+    throughput_distribution: dict = None
 
 
     def inc(self, update_db=True):
@@ -22,7 +24,7 @@ class NumParameter:
             new_val = min(new_val, self.max_val)
         else:
             new_val = self.current_val + self.granularity
-            new_val = max(new_val, self.min_val)
+            new_val = min(new_val, self.max_val)
 
         if (self.current_val != new_val):
             self.current_val = new_val
@@ -34,7 +36,7 @@ class NumParameter:
     def dec(self, update_db=True):
         if self.log_scale:
             new_val = self.current_val // self.granularity
-            new_val = min(new_val, self.max_val)
+            new_val = max(new_val, self.min_val)
         else:
             new_val = self.current_val - self.granularity
             new_val = max(new_val, self.min_val)
@@ -48,6 +50,8 @@ class NumParameter:
         self.connector.param_set(self.name, f'"{self.current_val}{self.suffix}"')
         if self.requires_restart:
             self.connector.restart()
+        if self.requires_analyze():
+            self.connector.analyze()
         self.connector.show_value(self.name)
 
     def reset(self, update_db):
@@ -111,9 +115,10 @@ def create_parameters(connector):
         #    granularity=0.5, log_scale=False,
         #    connector=connector),
         NumParameter(name="shared_buffers", suffix="MB",
-            min_val=64, max_val=512, default_val=128, current_val=128,
-            granularity=4, log_scale=True,
-            connector=connector, requires_restart=True),
+            min_val=32, max_val=512, default_val=128, current_val=128,
+            granularity=8, log_scale=True,
+            connector=connector, requires_restart=True,
+            throughput_distribution = {32: (374, 8.4), 512: (407, 19.7)}),
         #BoolParameter(name="fsync", vals=["off", "on"], connector=connector),
         #BoolParameter(name="synchronous_commit", vals=["off", "on"], connector=connector)
     ]

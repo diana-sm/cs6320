@@ -17,7 +17,7 @@ class PostgresEnvDiscrete(gym.Env):
 
         # the connectors
         self.postgres_connector = PGConn()
-        self.oltp_connector = OLTPAutomator(suppress_logging=True)
+        #self.oltp_connector = OLTPAutomator(suppress_logging=True)
         #self.oltp_connector.reinit_database()
 
         self.parameters = create_parameters(self.postgres_connector)
@@ -60,9 +60,11 @@ class PostgresEnvDiscrete(gym.Env):
         self.logger.write(f'\n\t\t\told value for {param.name}: {param.current_val}')
         
         if inc:
-            param.inc()
+            #param.inc()
+            param.inc(update_db=False)
         else:
-            param.dec()
+            #param.dec()
+            param.dec(update_db=False)
         
         if param.requires_restart:
             self.updated_restart_parameter = True
@@ -73,12 +75,17 @@ class PostgresEnvDiscrete(gym.Env):
         self.state = np.array([param.current_val for param in self.parameters])
         
         # run the benchmark, set the reward to be the change in throughput
-        self.oltp_connector.run_data()
-        throughput = self.oltp_connector.get_throughput()
+        #self.oltp_connector.run_data()
+        #throughput = self.oltp_connector.get_throughput()
+        mean, sd = param.throughput_distribution[param.current_val]
+        throughput = np.random.normal(mean, sd)
         
+        self.reward = (throughput - self.prev_throughput)/self.baseline_throughput
+
         print(f'prev throughput: {self.prev_throughput}, new throughput: {throughput}')
         self.logger.write(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
-        self.reward = throughput - self.prev_throughput
+        self.logger.write(f'\n\t\t\treward: {self.reward}')
+
         self.prev_throughput = throughput
 
         # for now, end each episode after one step
@@ -96,9 +103,10 @@ class PostgresEnvDiscrete(gym.Env):
         self.logger.write(f'\n\tepisode {self.episode}')
         
         # reset parameter values
-        self.postgres_connector.reset()
-        if self.updated_restart_parameter:
-            self.postgres_connector.restart()
+
+        #self.postgres_connector.reset()
+        #if self.updated_restart_parameter:
+            #self.postgres_connector.restart()
         for param in self.parameters:
             param.reset(update_db=False)
 
