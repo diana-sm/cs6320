@@ -8,7 +8,7 @@ echo "====creating new dbs===="
 sudo mysql -u root -e "CREATE DATABASE tpcctemplate;";
 sudo mysql -u root -e "CREATE DATABASE tpcc;";
 
-cd oltpbench
+cd ../oltpbench
 
 echo "====loading template dbs===="
 
@@ -18,4 +18,4 @@ echo "====copying templates to live===="
 
 sudo mysqldump -u root tpcctemplate | sudo mysql -u root tpcc
 
-cd ..
+cd ../setup_scripts
