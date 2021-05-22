@@ -8,8 +8,6 @@ from stable_baselines3 import A2C, DQN, DDPG, PPO, SAC, TD3
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 
-from parameter import parameters
-
 # register envs
 register(
     id='SimpleDiscrete-v0',
@@ -20,10 +18,6 @@ register(
     entry_point='envs.test_envs:SimpleContinuousEnv'
 ) 
 register(
-    id='Postgres-v0',
-    entry_point='envs.postgres_env:PostgresEnvContinuous'
-)
-register(
     id='Postgres-v1',
     entry_point='envs.postgres_env:PostgresEnvDiscrete'
 )
@@ -33,7 +27,7 @@ log_file = path.abspath('log.txt')
 f = open(log_file, 'a+')
 
 # create the env
-env = gym.make('Postgres-v1', parameters=parameters, baseline_throughput=400, logger=f)
+env = gym.make('Postgres-v1', baseline_throughput=370, logger=f)
 #env = make_vec_env('Postgres-v0', env_kwargs={'parameters': parameters})
 print(type(env))
 #check_env(env)
@@ -46,7 +40,7 @@ model = A2C("MlpPolicy", env, verbose=1)
 # learn
 f.write('\nstarted training')
 start = datetime.now()
-model.learn(total_timesteps=5)
+model.learn(total_timesteps=8)
 end = datetime.now()
 print(f'training time: {end-start}')
 

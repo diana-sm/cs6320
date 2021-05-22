@@ -13,6 +13,7 @@ class NumParameter:
     granularity: int
     log_scale: bool
     connector: PGConn = None
+    requires_restart: bool = False
 
 
     def inc(self, update_db=True):
@@ -44,12 +45,16 @@ class NumParameter:
                 self.update_db_config()
 
     def update_db_config(self):
-        connector.param_set(self.name, f'"{self.current_val}{self.suffix}"')
+        self.connector.param_set(self.name, f'"{self.current_val}{self.suffix}"')
+        if self.requires_restart:
+            self.connector.restart()
+        self.connector.show_value(self.name)
 
-    def reset(self):
+    def reset(self, update_db):
         if self.current_val != self.default_val:
             self.current_val = self.default_val
-            self.update_db_config()
+            if update_db:
+                self.update_db_config()
 
 @dataclass
 class BoolParameter:
@@ -60,6 +65,7 @@ class BoolParameter:
     min_val=0
     max_val=1
     connector: PGConn = None
+    requires_restart: bool = False
 
     def inc(self, update_db=True):
         new_val = 1
@@ -69,7 +75,7 @@ class BoolParameter:
             if update_db:
                 self.update_db_config()
 
-    def dec(self):
+    def dec(self, update_db=True):
         new_val = 0
         changed_val = (self.current_val != new_val)
         if (self.current_val != new_val):
@@ -78,31 +84,36 @@ class BoolParameter:
                 self.update_db_config()
 
     def update_db_config(self):
-        connector.param_set(self.name, self.vals[self.current_val])
+        self.connector.param_set(self.name, self.vals[self.current_val])
+        if self.requires_restart:
+            self.connector.restart()
+        self.connector.show_value(self.name)
 
-    def reset(self):
+    def reset(self, update_db=True):
         if self.current_val != self.default_val:
             self.current_val = self.default_val
-            self.update_db_config()
+            if update_db:
+                self.update_db_config()
 
-connector = PGConn()
-parameters = [
-        NumParameter(name="effective_cache_size", suffix="GB",
-            min_val=2, max_val=16, default_val=4, current_val=4,
-            granularity=2, log_scale=True,
-            connector=connector),
-        NumParameter(name="default_statistics_target", suffix="",
-            min_val=1, max_val=10000, default_val=100, current_val=100,
-            granularity=10, log_scale=True,
-            connector=connector),
-        NumParameter(name="random_page_cost", suffix="",
-            min_val=2, max_val=5, default_val=4, current_val=4,
-            granularity=0.5, log_scale=False,
-            connector=connector),
+
+def create_parameters(connector):
+    return [
+        #NumParameter(name="effective_cache_size", suffix="GB",
+        #    min_val=2, max_val=16, default_val=4, current_val=4,
+        #    granularity=2, log_scale=True,
+        #    connector=connector),
+        #NumParameter(name="default_statistics_target", suffix="",
+        #    min_val=1, max_val=10000, default_val=100, current_val=100,
+        #    granularity=10, log_scale=True,
+        #    connector=connector),
+        #NumParameter(name="random_page_cost", suffix="",
+        #    min_val=2, max_val=5, default_val=4, current_val=4,
+        #    granularity=0.5, log_scale=False,
+        #    connector=connector),
         NumParameter(name="shared_buffers", suffix="MB",
             min_val=64, max_val=512, default_val=128, current_val=128,
-            granularity=2, log_scale=True,
-            connector=connector),
-        BoolParameter(name="fsync", vals=["off", "on"], connector=connector),
-        BoolParameter(name="synchronous_commit", vals=["off", "on"], connector=connector)
-]
+            granularity=4, log_scale=True,
+            connector=connector, requires_restart=True),
+        #BoolParameter(name="fsync", vals=["off", "on"], connector=connector),
+        #BoolParameter(name="synchronous_commit", vals=["off", "on"], connector=connector)
+    ]
