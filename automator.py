@@ -34,12 +34,17 @@ for param, metrics in param_dict.items():
         p.param_set(param, m)
 
         a.run_data()
-        print(a.get_throughput())
-    # restart after every set of param has fully iterated through its list of metrics
-    # reinit after every param is done going through its metrics
+        print(param, m, a.get_throughput())
+
+    #reset after each individual param-- this NEEDS to happen because otherwise the last used value of the previous param will affect the next param as well
+    p.reset()
+
+    # the next two can be safely commented out probably
+    # restart after every set of param has fully iterated through its list of metrics-- only necessary if reset required (i.e. previous param was something like shared buffers, but it only delays the runtime by 3-4s so it should be safe to leave uncommented)
     p.restart()
-    p.reinit_database()
-    print("Reinit time:", time.time() - start_time)
+    # reinit after every param is done going through its metrics-- only necessary if database gets prohibitively large but also shouldn't affect functional correctness. Leaving this one commented because it takes 7-10 secs on its own
+    #p.reinit_database()
+    print("Time taken to evaluate values for:", param, time.time() - start_time)
 
 print("Benchmark time:", time.time() - start_time)
 
