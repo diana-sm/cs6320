@@ -8,106 +8,17 @@ from connectors.database import PGConn
 from connectors.benchmark import OLTPAutomator
 
 
-class PostgresEnvContinuous(gym.Env):
-    metadata = {'render.modes': ['human']}
-
-    def __init__(self, parameters):
-        super(PostgresEnvContinuous, self).__init__()
-
-        # The list of parameters we configure
-        self.parameters = parameters
-
-        # the connectors
-        self.postgres_connector = PGConn()
-        self.oltp_connector = OLTPAutomator(suppress_logging=True)
-        #self.oltp_connector.reinit_database()
-
-        # Action space: 2xN - dimensional array where N = num parameters
-        # Represents new parameter config
-        self.action_space = spaces.Box(
-            low=-1, 
-            high=1,
-            shape=(len(parameters),),
-            dtype=np.float32)
-        
-        # Observation space: observe the current parameter config
-        self.observation_space = spaces.Box(
-                low=np.array([param.min_val for param in parameters]),
-                high=np.array([param.max_val for param in parameters]),
-                dtype=np.float32)
-
-        self.steps_taken = 0
-        
-
-        print(self.action_space)
-
-    def step(self, action):
-        print(f'step {self.steps_taken}')
-        print(f'action: {action}')
-        print(f'old parameters: {[(param.name, param.current_val) for param in self.parameters]}')
-        # set the new configurations for the parameters
-        for i in range(len(self.parameters)):
-            param = self.parameters[i]
-            delta = action[i]*(param.max_val-param.min_val)
-            new_val = round(param.current_val + delta)
-            new_val = max(param.min_val, new_val)
-            new_val = min(param.max_val, new_val)
-            if new_val != param.current_val:
-                param.current_val = new_val
-                self.postgres_connector.param_set(param.name, str(param.current_val) + param.suffix)
-        
-        print(f'new parameters: {[(param.name, param.current_val) for param in self.parameters]}')
-        
-        observation = np.array([param.current_val for param in self.parameters])
-        
-        # run the benchmark
-        self.oltp_connector.run_data()
-        reward = self.oltp_connector.get_throughput()
-
-        print(f'throughput: {reward}')
-
-        # end each episode after 8 steps
-        self.steps_taken += 1
-        done = (self.steps_taken == 8)
-        # print(observation)
-
-        return observation, reward, done, {}
-
-    def reset(self):
-        self.steps_taken = 0
-        
-        # reset parameter values
-        for param in self.parameters:
-            if param.current_val != param.default_val:
-                param.current_val = param.default_val
-                self.postgres_connector.param_set(param.name, param.current_val)
-        
-        observation = np.array([param.current_val for param in self.parameters])
-        
-        # reinitialize database
-        self.oltp_connector.reinit_database()
-
-        print(observation)
-        print("-"*100)
-        return observation
-
-    def render(self, mode='human'):
-        pass
-
-    def close (self):
-        pass
-
 class PostgresEnvDiscrete(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, parameters, baseline_throughput):
+    def __init__(self, parameters, baseline_throughput, logger = open('log.txt', 'a+')):
         super(PostgresEnvDiscrete, self).__init__()
 
         # The list of parameters we configure
         self.parameters = parameters
 
         # the connectors
-        self.postgres_connector = PGConn()
+        #self.postgres_connector = PGConn()
         self.oltp_connector = OLTPAutomator(suppress_logging=True)
         #self.oltp_connector.reinit_database()
 
@@ -118,62 +29,81 @@ class PostgresEnvDiscrete(gym.Env):
         self.observation_space = spaces.Box(
                 low=np.array([param.min_val for param in parameters]),
                 high=np.array([param.max_val for param in parameters]),
-                dtype=np.float32)
+                dtype=np.int)
 
+        self.episode = 0
         self.steps_taken = 0
+        self.done = False
 
+        self.baseline_throughput = baseline_throughput
         self.prev_throughput = baseline_throughput
-        
-        print(self.action_space)
+
+        self.logger = logger
+
+        self.reset()
 
     def step(self, action):
-        print(f'step {self.steps_taken}')
+        assert(not self.done)
+        print(f'episode {self.episode} step {self.steps_taken}')
         print(f'action: {action}')
+        self.logger.write(f'\n\t\tstep {self.steps_taken}')
+        self.logger.write(f'\n\t\t\taction: {action}')
+        
 
         # change the configuration for the chosen parameter
         index = action // 2
         inc = action % 2
         param = self.parameters[index]
 
-        print(f'new value for {param.name} : {param.current_val}')
-
+        print(f'old value for {param.name}: {param.current_val}')
+        self.logger.write(f'\n\t\t\told value for {param.name}: {param.current_val}')
+        
+        changed_value = False
         if inc:
-            param.current_val += param.granularity
+            changed_value = param.inc()
         else:
-            param.current_val -= param.granularity
+            changed_value = param.dec()
         
-        print(f'new value for {param.name} : {param.current_val}')
-
-        self.postgres_connector.param_set(param.name, str(param.current_val) + param.suffix)
-        observation = np.array([param.current_val for param in self.parameters])
+        print(f'new value for {param.name}: {param.current_val}')
+        self.logger.write(f'\n\t\t\tnew value for {param.name}: {param.current_val}')
         
-        # run the benchmark
+        self.state = np.array([param.current_val for param in self.parameters])
+        
+        # run the benchmark, set the reward to be the change in throughput
         self.oltp_connector.run_data()
-        reward = self.oltp_connector.get_throughput()
-
-        print(f'throughput: {reward}')
+        throughput = self.oltp_connector.get_throughput()
+        
+        print(f'prev throughput: {self.prev_throughput}, new throughput: {throughput}')
+        self.logger.write(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
+        self.reward = throughput - self.prev_throughput
+        self.prev_throughput = throughput
 
         # for now, end each episode after one step
         self.steps_taken += 1
-        done = (self.steps_taken == 1)
+        self.done = (self.steps_taken == 1)
+        print(f'done = {self.done}')
         # print(observation)
 
-        return observation, reward, done, {}
+        return self.state, self.reward, self.done, {}
 
     def reset(self):
+        self.episode += 1
         self.steps_taken = 0
+        self.done = False
+        self.logger.write(f'\n\tepisode {self.episode}')
         
         # reset parameter values
         for param in self.parameters:
-            if param.current_val != param.default_val:
-                param.current_val = param.default_val
-                self.postgres_connector.param_set(param.name, param.current_val + param.suffix)
+            param.reset()
         
-        observation = np.array([param.current_val for param in self.parameters])
+        self.state = np.array([param.current_val for param in self.parameters])
         
         # self.oltp_connector.reinit_database()
 
-        return observation
+        # change this later to adjust for changing throughput over time
+        self.prev_throughput = self.baseline_throughput
+
+        return self.state
 
     def render(self, mode='human'):
         pass

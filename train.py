@@ -1,5 +1,6 @@
 import numpy as np
 from datetime import datetime
+from os import path
 
 import gym
 from gym.envs.registration import register
@@ -7,7 +8,7 @@ from stable_baselines3 import A2C, DQN, DDPG, PPO, SAC, TD3
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 
-from parameter import Parameter
+from parameter import parameters
 
 # register envs
 register(
@@ -27,23 +28,23 @@ register(
     entry_point='envs.postgres_env:PostgresEnvDiscrete'
 )
 
-# initialize parameters
-random_page_cost = Parameter("random_page_cost", "", 1, 4, 4, 4, 0.5)
-io_concurrency = Parameter("effective_io_concurrency", "", 1, 1000, 1, 1, 10)
-parameters = [random_page_cost, io_concurrency]
+# create log file
+log_file = path.abspath('log.txt')
+f = open(log_file, 'a+')
 
-# create the env with the parameters
-env = gym.make('Postgres-v0', parameters=parameters, baseline_throughput=62)
+# create the env
+env = gym.make('Postgres-v1', parameters=parameters, baseline_throughput=400, logger=f)
 #env = make_vec_env('Postgres-v0', env_kwargs={'parameters': parameters})
 print(type(env))
-check_env(env)
+#check_env(env)
 
 # initialize model
 # model = DDPG("MlpPolicy", env, verbose=1)
 # model = DQN("MlpPolicy", env, verbose=1)
-model = PPO("MlpPolicy", env, verbose=1)
+model = A2C("MlpPolicy", env, verbose=1)
 
 # learn
+f.write('\nstarted training')
 start = datetime.now()
 model.learn(total_timesteps=5)
 end = datetime.now()
@@ -54,18 +55,21 @@ actions = []
 states = []
 all_rewards = []
 
+f.write('\nrunning trained model')
+
 # run the trained model
-for i in range(5):
+for i in range(1):
   print(f'trained model step {i}')
   action, _states = model.predict(obs)
-  obs, rewards, done, info = env.step(action)
+  obs, reward, done, info = env.step(action)
   env.render()
+  all_rewards.append(reward)
 
-  actions.append(round(action[0],2))
-  states.append(round(env.state[0],2))
-  all_rewards.append(rewards)
-
-print(actions)
-print(states)
+# print(actions)
+# print(states)
 # print(all_rewards)
-print(np.mean(all_rewards))
+# print(np.mean(all_rewards))
+
+# set parameter values back to default
+env.reset()
+f.close()

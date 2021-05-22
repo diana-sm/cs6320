@@ -37,6 +37,7 @@ class OLTPAutomator:
             all_lines = f.readlines()
             res = all_lines[-1].split(",")[1]
             f.close()
+            print(res)
             return(float(res))
 
     # this function BOTH drops the tables AND creates new ones, so it can basically just be used every x times we run the benchmark
@@ -49,6 +50,6 @@ class OLTPAutomator:
 if __name__ == "__main__":
     a = OLTPAutomator()
 
-    a.reinit_database()
+    #a.reinit_database()
     a.run_data()
     a.get_throughput()
