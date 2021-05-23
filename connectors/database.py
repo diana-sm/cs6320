@@ -28,7 +28,7 @@ class PGConn():
 
     def reset(self):
         self.run_command("sudo -u postgres psql -c 'ALTER SYSTEM RESET ALL;'")
-        #self.run_command("sudo -u postgres psql -c 'SELECT pg_reload_conf();'")
+        self.run_command("sudo -u postgres psql -c 'SELECT pg_reload_conf();'")
         self.restart() #changed to hard restart becuse some system params need it to be reloaded
 
     def analyze(self):

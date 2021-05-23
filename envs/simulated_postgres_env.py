@@ -9,19 +9,16 @@ from connectors.benchmark import OLTPAutomator
 from parameter import create_parameters
 
 
-class PostgresEnvDiscrete(gym.Env):
+class PostgresSimEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, baseline_throughput, episode_len=1, logger=open('log.txt', 'a+')):
-        super(PostgresEnvDiscrete, self).__init__()
+    def __init__(self, baseline_throughput, logger = open('log.txt', 'a+')):
+        super(PostgresSimEnv, self).__init__()
 
         # the connectors
         self.postgres_connector = PGConn()
-        self.oltp_connector = OLTPAutomator(suppress_logging=True)
-        self.postgres_connector.reinit_database()
 
         self.parameters = create_parameters(self.postgres_connector)
-
 
         # Action space: 2xN - each action represents incrementing or decrementing a parameter
         self.action_space = spaces.Discrete(2*len(self.parameters))
@@ -35,7 +32,6 @@ class PostgresEnvDiscrete(gym.Env):
         self.episode = 0
         self.steps_taken = 0
         self.done = False
-        self.episode_len = episode_len
 
         self.baseline_throughput = baseline_throughput
         self.prev_throughput = baseline_throughput
@@ -62,9 +58,11 @@ class PostgresEnvDiscrete(gym.Env):
         self.logger.write(f'\n\t\t\told value for {param.name}: {param.current_val}')
         
         if inc:
-            param.inc()
+            #param.inc()
+            param.inc(update_db=False)
         else:
-            param.dec()
+            #param.dec()
+            param.dec(update_db=False)
         
         if param.requires_restart:
             self.updated_restart_parameter = True
@@ -74,9 +72,9 @@ class PostgresEnvDiscrete(gym.Env):
         
         self.state = np.array([param.current_val for param in self.parameters])
         
-        # run the benchmark, set the reward to be the change in throughput
-        self.oltp_connector.run_data()
-        throughput = self.oltp_connector.get_throughput()
+        # simulate the throughput
+        mean, sd = param.throughput_distribution[param.current_val]
+        throughput = np.random.normal(mean, sd)
         
         self.reward = (throughput - self.prev_throughput)/self.baseline_throughput
 
@@ -86,9 +84,9 @@ class PostgresEnvDiscrete(gym.Env):
 
         self.prev_throughput = throughput
 
-        # for now, end each episode after one step
+        # end each episode after one step
         self.steps_taken += 1
-        self.done = (self.steps_taken == self.episode_len)
+        self.done = (self.steps_taken == 1)
         print(f'done = {self.done}')
         # print(observation)
 
@@ -102,21 +100,12 @@ class PostgresEnvDiscrete(gym.Env):
         
         # reset parameter values
 
-        self.postgres_connector.reset()
-        if self.updated_restart_parameter:
-            self.postgres_connector.restart()
         for param in self.parameters:
             param.reset(update_db=False)
 
-        self.updated_restart_parameter = False
-        
+        self.updated_restart_parameter = False        
         self.state = np.array([param.current_val for param in self.parameters])
-        
-        # self.oltp_connector.reinit_database()
-
-        # change this later to adjust for changing throughput over time
         self.prev_throughput = self.baseline_throughput
-
         return self.state
 
     def render(self, mode='human'):

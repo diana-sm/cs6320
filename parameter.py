@@ -50,7 +50,7 @@ class NumParameter:
         self.connector.param_set(self.name, f'"{self.current_val}{self.suffix}"')
         if self.requires_restart:
             self.connector.restart()
-        if self.requires_analyze():
+        if self.requires_analyze:
             self.connector.analyze()
         self.connector.show_value(self.name)
 
@@ -102,23 +102,39 @@ class BoolParameter:
 
 def create_parameters(connector):
     return [
-        #NumParameter(name="effective_cache_size", suffix="GB",
-        #    min_val=2, max_val=16, default_val=4, current_val=4,
-        #    granularity=2, log_scale=True,
-        #    connector=connector),
-        #NumParameter(name="default_statistics_target", suffix="",
-        #    min_val=1, max_val=10000, default_val=100, current_val=100,
-        #    granularity=10, log_scale=True,
-        #    connector=connector),
-        #NumParameter(name="random_page_cost", suffix="",
-        #    min_val=2, max_val=5, default_val=4, current_val=4,
-        #    granularity=0.5, log_scale=False,
-        #    connector=connector),
+        NumParameter(name="effective_cache_size", suffix="GB",
+            min_val=2, max_val=16, default_val=4, current_val=4,
+            granularity=2, log_scale=True,
+            connector=connector),
+        NumParameter(name="default_statistics_target", suffix="",
+            min_val=1, max_val=10000, default_val=100, current_val=100,
+            granularity=10, log_scale=True,
+            connector=connector),
+        NumParameter(name="random_page_cost", suffix="",
+            min_val=2, max_val=5, default_val=4, current_val=4,
+            granularity=0.5, log_scale=False,
+            connector=connector),
         NumParameter(name="shared_buffers", suffix="MB",
             min_val=32, max_val=512, default_val=128, current_val=128,
             granularity=8, log_scale=True,
             connector=connector, requires_restart=True,
             throughput_distribution = {32: (374, 8.4), 512: (407, 19.7)}),
-        #BoolParameter(name="fsync", vals=["off", "on"], connector=connector),
-        #BoolParameter(name="synchronous_commit", vals=["off", "on"], connector=connector)
+        NumParameter(name="work_mem", suffix="MB",
+            min_val=1, max_val=512, default_val=4, current_val=4,
+            granularity=2, log_scale=True,
+            connector=connector),
+        NumParameter(name="maintenance_work_mem", suffix="MB",
+            min_val=16, max_val=512, default_val=64, current_val=64,
+            granularity=2, log_scale=True,
+            connector=connector),
+        NumParameter(name="autovacuum_vacuum_scale_factor", suffix="",
+            min_val=0.1, max_val=0.4, default_val=0.2, current_val=0.2,
+            granularity=0.1, log_scale=False,
+            connector=connector),
+        NumParameter(name="autovacuum_vacuum_threshold", suffix="",
+            min_val=20, max_val=100, default_val=50, current_val=50,
+            granularity=10, log_scale=False,
+            connector=connector),
+        BoolParameter(name="fsync", vals=["off", "on"], connector=connector),
+        BoolParameter(name="synchronous_commit", vals=["off", "on"], connector=connector)
     ]
