@@ -65,7 +65,8 @@ class OLTPAutomator:
 
 
 if __name__ == "__main__":
-    a = OLTPAutomator(bench = "tpch", benchmark = "tpch_config_postgres.xml")
+    #a = OLTPAutomator(bench = "tpch", benchmark = "tpch_config_postgres.xml")
+    a = OLTPAutomator()
 
     a.run_data()
     #should print message

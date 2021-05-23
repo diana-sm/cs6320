@@ -33,19 +33,20 @@ f = open(log_file, 'a+')
 all_states = []
 all_throughputs = []
 
+start = datetime.now()
 episode_len = 4
 for i in range(1):
     # create env and model
-    env = gym.make('Postgres-v1', baseline_throughput=400, episode_len=episode_len, logger=f)
+    env = gym.make('Postgres-v1', baseline_throughput=190, episode_len=episode_len, logger=f)
     model = A2C("MlpPolicy", env, verbose=1)
 
     # learn
     print('started training')
     f.write('\nstarted training')
-    start = datetime.now()
-    model.learn(total_timesteps=2)
-    end = datetime.now()
-    print(f'training time: {end-start}')
+    #start = datetime.now()
+    model.learn(total_timesteps=300)
+    #end = datetime.now()
+    #print(f'training time: {end-start}')
 
     f.write('\nrunning trained model')
     # run the trained model
@@ -53,13 +54,13 @@ for i in range(1):
     throughputs = []
 
     # once the model is trained, run the learning 5x, use the config with the best throughput
-    for j in range(1):
+    for j in range(5):
+        obs = env.reset()
         for k in range(episode_len):
-            obs = env.reset()
-            print(f'trained model step {i}')
             action, _states = model.predict(obs)
             obs, reward, done, info = env.step(action)
             env.render()
+            #print({param.name : f'{param.default_val} -> {param.current_val}' for param in env.parameters})
         states.append({param.name : f'{param.default_val} -> {param.current_val}' for param in env.parameters})
         throughputs.append(info['throughput'])
 
@@ -68,6 +69,9 @@ for i in range(1):
 
 print(all_states)
 print(all_throughputs)
+
+end = datetime.now()
+print(f'total time = {end-start}')
 
 # set parameter values back to default
 env.reset()

@@ -101,12 +101,15 @@ class PostgresEnvDiscrete(gym.Env):
         self.logger.write(f'\n\tepisode {self.episode}')
         
         # reset parameter values
-
         self.postgres_connector.reset()
         if self.updated_restart_parameter:
             self.postgres_connector.restart()
         for param in self.parameters:
             param.reset(update_db=False)
+
+        # periodically reinit database
+        if (self.episode % 25) == 0:
+            self.postgres_connector.reinit_database()
 
         self.updated_restart_parameter = False
         
