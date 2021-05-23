@@ -6,8 +6,8 @@ import numpy as np
 
 #EXAMPLE FILE FOR HOW TO USE DATABASE AND BENCHMARK CONNECTORS
 
-p = PGConn(suppress_logging=False)
-a = OLTPAutomator(suppress_logging=False)
+p = PGConn(suppress_logging=True)
+a = OLTPAutomator(suppress_logging=True)
 #reset to start from clean slate
 p.reset()
 

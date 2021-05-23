@@ -34,15 +34,22 @@ class PGConn():
     def analyze(self):
         self.run_command("sudo -u postgres psql -c 'ANALYZE;'")
     
-    def reinit_database(self):
-        self.run_command("sudo -u postgres psql -c 'DROP DATABASE tpcc;'")
-        self.run_command("sudo -u postgres psql -c 'CREATE DATABASE tpcc WITH TEMPLATE tpcctemplate;'")
+    def reinit_database(self, bench="tpcc"):
+        self.run_command("sudo -u postgres psql -c 'DROP DATABASE {};'".format(bench))
+        self.run_command("sudo -u postgres psql -c 'CREATE DATABASE {} WITH TEMPLATE {}template;'".format(bench, bench))
 
 class MySQLConn():
 
     def __init__(self, suppress_logging = False):
         self.suppress_logging = suppress_logging
 
+    def run_command(self, command):
+        os.system(
+            "{} {}".format(
+                command,
+                ("> /dev/null 2>&1" if self.suppress_logging else "")
+            )
+        )
 
     def param_set(self, name, value, scope = "PERSIST"):
         #persist is strongest scope level (both changes runtime value and writes to file), but optionally can use a weaker one (not sure why we would need to just yet though)
@@ -75,6 +82,7 @@ if __name__ == "__main__":
     p = PGConn()
     p.param_set("commit_delay", 400)
     p.reset()
+    p.reinit_database(bench="tpch")
 
 #can be verified with something like sudo -u postgres psql -c 'SHOW commit_delay';
 
