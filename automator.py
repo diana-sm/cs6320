@@ -21,11 +21,14 @@ param_dict = {
     "maintenance_work_mem": ['"1 MB"', '"2 MB"', '"4 MB"', '"8 MB"', '"16 MB"'],
     "effective_io_concurrency": ['"1"', '"10"', '"100"', '"500"', '"1000"'],
     "default_statistics_target": ['"1"', '"10"', '"100"', '"500"', '"1000"', '"5000"', '"10000"'],
+    #run the analyze command 
     "random_page_cost": ['"1.0"', '"2.0"', '"3.0"', '"4.0"'],
     "autovacuum_scale_factor": ['"0"', '"0.5"', '"1"'],
     "autovacuum_vacuum_threshold": ['"0"', '"1"', '"10"', '"100"', '"500"', '"1000"', '"5000"', '"10000"'],
-    "vacuum_cost_limit": ['"0 ms"', '"1 ms"', '"10 ms"', '"100 ms"', '"500 ms"', '"1000 ms"'],
-    "vacuum_cost_delay": ['"0 ms"', '"1 ms"', '"10 ms"', '"100 ms"', '"500 ms"', '"1000 ms"']
+    "fsync": ['"on"', '"off"'],
+    "synchronous_commit": ['"on"', '"off"']
+    # "vacuum_cost_limit": ['"0 ms"', '"1 ms"', '"10 ms"', '"100 ms"', '"500 ms"', '"1000 ms"'],
+    # "vacuum_cost_delay": ['"0 ms"', '"1 ms"', '"10 ms"', '"100 ms"', '"500 ms"', '"1000 ms"']
 }
 
 for param, metrics in param_dict.items():
