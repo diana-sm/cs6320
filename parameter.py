@@ -52,7 +52,7 @@ class NumParameter:
             self.connector.restart()
         if self.requires_analyze:
             self.connector.analyze()
-        self.connector.show_value(self.name)
+        #self.connector.show_value(self.name)
 
     def reset(self, update_db):
         if self.current_val != self.default_val:
@@ -91,7 +91,7 @@ class BoolParameter:
         self.connector.param_set(self.name, self.vals[self.current_val])
         if self.requires_restart:
             self.connector.restart()
-        self.connector.show_value(self.name)
+        #self.connector.show_value(self.name)
 
     def reset(self, update_db=True):
         if self.current_val != self.default_val:
@@ -112,11 +112,11 @@ def create_parameters(connector):
             connector=connector),
         NumParameter(name="random_page_cost", suffix="",
             min_val=2, max_val=5, default_val=4, current_val=4,
-            granularity=0.5, log_scale=False,
+            granularity=1, log_scale=False,
             connector=connector),
         NumParameter(name="shared_buffers", suffix="MB",
             min_val=32, max_val=512, default_val=128, current_val=128,
-            granularity=8, log_scale=True,
+            granularity=2, log_scale=True,
             connector=connector, requires_restart=True,
             throughput_distribution = {32: (374, 8.4), 512: (407, 19.7)}),
         NumParameter(name="work_mem", suffix="MB",

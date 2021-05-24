@@ -26,25 +26,28 @@ register(
     entry_point='envs.postgres_env:PostgresEnvDiscrete'
 )
 
+episode_len = 4
+training_steps = 1000
+num_predictions = 5
+
 # create log file
-log_file = path.abspath('log.txt')
+log_file = path.abspath('log1.txt')
 f = open(log_file, 'a+')
 
 all_states = []
 all_throughputs = []
 
 start = datetime.now()
-episode_len = 4
 for i in range(1):
     # create env and model
-    env = gym.make('Postgres-v1', baseline_throughput=190, episode_len=episode_len, logger=f)
+    env = gym.make('Postgres-v1', baseline_throughput=190, evaluate_after_each_step=False, episode_len=episode_len, logger=f)
     model = A2C("MlpPolicy", env, verbose=1)
 
     # learn
     print('started training')
     f.write('\nstarted training')
     #start = datetime.now()
-    model.learn(total_timesteps=300)
+    model.learn(total_timesteps=training_steps)
     #end = datetime.now()
     #print(f'training time: {end-start}')
 
@@ -53,8 +56,10 @@ for i in range(1):
     states = []
     throughputs = []
 
-    # once the model is trained, run the learning 5x, use the config with the best throughput
-    for j in range(5):
+    # once the model is trained, run the learning phase multiple times
+    # use the config with the best throughput
+    for j in range(num_predictions):
+        print(f'generating prediction {j}')
         obs = env.reset()
         for k in range(episode_len):
             action, _states = model.predict(obs)
