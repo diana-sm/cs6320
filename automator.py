@@ -3,15 +3,17 @@ from connectors.database import PGConn
 import os
 import time
 
+bench = "tpch"
+
 p = PGConn(suppress_logging=True)
-a = OLTPAutomator(suppress_logging=True)
+a = OLTPAutomator(suppress_logging=True, bench = bench, benchmark = bench+"_config_postgres.xml")
 #reset to start from clean slate
 p.reset()
 
 #========
 #reinits are fast now (sub-10 seconds)
 start_time = time.time()
-p.reinit_database()
+p.reinit_database(bench=bench)
 print("Reinit time:", time.time() - start_time)
 #========
 
@@ -36,7 +38,10 @@ for param, metrics in param_dict.items():
         p.param_set(param, m)
 
         a.run_data()
-        print(param, m, a.get_throughput())
+        if bench == "tpch":
+            print(param, m a.get_latency())
+        else:
+            print(param, m, a.get_throughput())
 
     #reset after each individual param-- this NEEDS to happen because otherwise the last used value of the previous param will affect the next param as well
     p.reset()

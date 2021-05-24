@@ -15,10 +15,12 @@ class PostgresEnvDiscrete(gym.Env):
     def __init__(self, baseline_throughput, evaluate_after_each_step, episode_len=1, logger=open('log.txt', 'a+')):
         super(PostgresEnvDiscrete, self).__init__()
 
+        self.bench = "tpch" ##CHANGE TO tpch IF NEEDED
+
         # the connectors
         self.postgres_connector = PGConn()
-        self.oltp_connector = OLTPAutomator(suppress_logging=True)
-        self.postgres_connector.reinit_database()
+        self.oltp_connector = OLTPAutomator(suppress_logging=True, bench = self.bench, benchmark = self.bench+"_config_postgres.xml")
+        self.postgres_connector.reinit_database(bench=self.bench)
 
         self.parameters = create_parameters(self.postgres_connector)
 
@@ -86,14 +88,27 @@ class PostgresEnvDiscrete(gym.Env):
         if self.done or self.evaluate_after_each_step:
             # run the benchmark, set the reward to be the change in throughput
             self.oltp_connector.run_data()
-            throughput = self.oltp_connector.get_throughput()
+
+            #NOTE: DESPITE THE NAMING SCHEME BELOW, TPCH USES LATENCIES FOR PERFORMANCE! BUT I WAS LAZY AND DIDN'T WANT TO CHANGE DUPLICATE THE CODE.
+            if bench == "tpch":
+                throughput = self.oltp_connector.get_latency()
         
-            self.reward = (throughput - self.prev_throughput)/self.baseline_throughput
+                self.reward = (previous_throughput-throughput)/baseline_throughput
 
-            self.log(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
-            self.log(f'\n\t\t\treward: {self.reward}')
+                self.log(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
+                self.log(f'\n\t\t\treward: {self.reward}')
 
-            self.prev_throughput = throughput
+                self.prev_throughput = throughput
+
+            else:
+                throughput = self.oltp_connector.get_throughput()
+            
+                self.reward = (throughput - self.prev_throughput)/self.baseline_throughput
+
+                self.log(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
+                self.log(f'\n\t\t\treward: {self.reward}')
+
+                self.prev_throughput = throughput
         else:
             self.reward = 0
 
@@ -114,13 +129,13 @@ class PostgresEnvDiscrete(gym.Env):
 
         # periodically reinit database
         if (self.episode % 25) == 0:
-            self.postgres_connector.reinit_database()
+            self.postgres_connector.reinit_database(bench=self.bench)
 
         self.updated_restart_parameter = False
         
         self.state = np.array([param.current_val for param in self.parameters])
         
-        # self.oltp_connector.reinit_database()
+        # self.oltp_connector.reinit_database(bench=self.bench)
 
         # change this later to adjust for changing throughput over time
         self.prev_throughput = self.baseline_throughput
