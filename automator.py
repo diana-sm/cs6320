@@ -3,7 +3,7 @@ from connectors.database import PGConn
 import os
 import time
 
-bench = "tpch"
+bench = "tpcc"
 
 p = PGConn(suppress_logging=True)
 a = OLTPAutomator(suppress_logging=True, bench = bench, benchmark = bench+"_config_postgres.xml")
@@ -41,7 +41,7 @@ for param, metrics in param_dict.items():
 
         a.run_data()
         if bench == "tpch":
-            print(param, m a.get_latency())
+            print(param, m, a.get_latency())
         else:
             print(param, m, a.get_throughput())
 
