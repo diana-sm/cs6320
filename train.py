@@ -16,53 +16,67 @@ register(
 register(
     id='SimpleContinuous-v0',
     entry_point='envs.test_envs:SimpleContinuousEnv'
-) 
+)
+register(
+        id='Postgres-Sim-v0',
+        entry_point='envs.simulated_postgres_env:PostgresSimEnv'
+)
 register(
     id='Postgres-v1',
     entry_point='envs.postgres_env:PostgresEnvDiscrete'
 )
 
+episode_len = 4
+training_steps = 1000
+num_predictions = 5
+
 # create log file
-log_file = path.abspath('log.txt')
+log_file = path.abspath('log1.txt')
 f = open(log_file, 'a+')
 
-# create the env
-env = gym.make('Postgres-v1', baseline_throughput=370, logger=f)
-#env = make_vec_env('Postgres-v0', env_kwargs={'parameters': parameters})
-print(type(env))
-#check_env(env)
+all_states = []
+all_throughputs = []
 
-# initialize model
-# model = DDPG("MlpPolicy", env, verbose=1)
-# model = DQN("MlpPolicy", env, verbose=1)
-model = A2C("MlpPolicy", env, verbose=1)
-
-# learn
-f.write('\nstarted training')
 start = datetime.now()
-model.learn(total_timesteps=8)
-end = datetime.now()
-print(f'training time: {end-start}')
-
-obs = env.reset()
-actions = []
-states = []
-all_rewards = []
-
-f.write('\nrunning trained model')
-
-# run the trained model
 for i in range(1):
-  print(f'trained model step {i}')
-  action, _states = model.predict(obs)
-  obs, reward, done, info = env.step(action)
-  env.render()
-  all_rewards.append(reward)
+    # create env and model
+    env = gym.make('Postgres-v1', baseline_throughput=190, evaluate_after_each_step=False, episode_len=episode_len, logger=f)
+    model = A2C("MlpPolicy", env, verbose=1)
 
-# print(actions)
-# print(states)
-# print(all_rewards)
-# print(np.mean(all_rewards))
+    # learn
+    print('started training')
+    f.write('\nstarted training')
+    #start = datetime.now()
+    model.learn(total_timesteps=training_steps)
+    #end = datetime.now()
+    #print(f'training time: {end-start}')
+
+    f.write('\nrunning trained model')
+    # run the trained model
+    states = []
+    throughputs = []
+
+    # once the model is trained, run the learning phase multiple times
+    # use the config with the best throughput
+    for j in range(num_predictions):
+        print(f'generating prediction {j}')
+        obs = env.reset()
+        for k in range(episode_len):
+            action, _states = model.predict(obs)
+            obs, reward, done, info = env.step(action)
+            env.render()
+            #print({param.name : f'{param.default_val} -> {param.current_val}' for param in env.parameters})
+        states.append({param.name : f'{param.default_val} -> {param.current_val}' for param in env.parameters})
+        throughputs.append(info['throughput'])
+
+    all_states.append(states)
+    all_throughputs.append(throughputs)
+
+print(all_states)
+print(all_throughputs)
+
+end = datetime.now()
+print(f'total time = {end-start}')
 
 # set parameter values back to default
 env.reset()

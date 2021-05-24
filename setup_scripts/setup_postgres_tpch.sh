@@ -11,7 +11,7 @@ cd ../oltpbench
 
 echo "====loading template dbs===="
 
-sudo ./oltpbenchmark -b tpcc -c ../configs/tpch_config_postgres_template.xml --create=true --load=true
+sudo ./oltpbenchmark -b tpch -c ../configs/tpch_config_postgres_template.xml --create=true --load=true
 
 echo "====copying templates to live===="
 

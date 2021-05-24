@@ -12,18 +12,23 @@ from parameter import create_parameters
 class PostgresEnvDiscrete(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, baseline_throughput, logger = open('log.txt', 'a+')):
+    def __init__(self, baseline_throughput, evaluate_after_each_step, episode_len=1, logger=open('log.txt', 'a+')):
         super(PostgresEnvDiscrete, self).__init__()
+
+        self.bench = "tpch" ##CHANGE TO tpch IF NEEDED
 
         # the connectors
         self.postgres_connector = PGConn()
-        self.oltp_connector = OLTPAutomator(suppress_logging=True)
-        #self.oltp_connector.reinit_database()
+        self.oltp_connector = OLTPAutomator(suppress_logging=True, bench = self.bench, benchmark = self.bench+"_config_postgres.xml")
+        self.postgres_connector.reinit_database(bench=self.bench)
 
         self.parameters = create_parameters(self.postgres_connector)
 
-        # Action space: 2xN - each action represents incrementing or decrementing a parameter
-        self.action_space = spaces.Discrete(2*len(self.parameters))
+
+        # Action space: 2xN + 1
+        # action for incrementing or decrementing each parameter
+        # + an action for keeping the config unchanged 
+        self.action_space = spaces.Discrete(2*len(self.parameters)+1)
         
         # Observation space: observe the current parameter config
         self.observation_space = spaces.Box(
@@ -34,7 +39,8 @@ class PostgresEnvDiscrete(gym.Env):
         self.episode = 0
         self.steps_taken = 0
         self.done = False
-
+        self.episode_len = episode_len
+        self.evaluate_after_each_step = evaluate_after_each_step
         self.baseline_throughput = baseline_throughput
         self.prev_throughput = baseline_throughput
 
@@ -45,55 +51,74 @@ class PostgresEnvDiscrete(gym.Env):
 
     def step(self, action):
         assert(not self.done)
-        print(f'episode {self.episode} step {self.steps_taken}')
-        print(f'action: {action}')
-        self.logger.write(f'\n\t\tstep {self.steps_taken}')
-        self.logger.write(f'\n\t\t\taction: {action}')
+        self.log(f'\n\t\tstep {self.steps_taken}')
+        self.log(f'\n\t\t\taction: {action}')
         
 
         # change the configuration for the chosen parameter
         index = action // 2
-        inc = action % 2
-        param = self.parameters[index]
+        
+        # change parameter config (unless we chose the last action)
+        if index < len(self.parameters):
+            inc = action % 2
+            param = self.parameters[index]
 
-        print(f'old value for {param.name}: {param.current_val}')
-        self.logger.write(f'\n\t\t\told value for {param.name}: {param.current_val}')
+            self.log(f'\n\t\t\told value for {param.name}: {param.current_val}')
         
-        if inc:
-            param.inc()
-        else:
-            param.dec()
+            if inc:
+                param.inc()
+            else:
+                param.dec()
         
-        if param.requires_restart:
-            self.updated_restart_parameter = True
+            if param.requires_restart:
+                self.updated_restart_parameter = True
             
-        print(f'new value for {param.name}: {param.current_val}')
-        self.logger.write(f'\n\t\t\tnew value for {param.name}: {param.current_val}')
+            self.log(f'\n\t\t\tnew value for {param.name}: {param.current_val}')
+        
+        else:
+            self.log('\n\t\t\tno changes to parameter vals')
         
         self.state = np.array([param.current_val for param in self.parameters])
         
-        # run the benchmark, set the reward to be the change in throughput
-        self.oltp_connector.run_data()
-        throughput = self.oltp_connector.get_throughput()
-        
-        print(f'prev throughput: {self.prev_throughput}, new throughput: {throughput}')
-        self.logger.write(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
-        self.reward = throughput - self.prev_throughput
-        self.prev_throughput = throughput
-
-        # for now, end each episode after one step
         self.steps_taken += 1
-        self.done = (self.steps_taken == 1)
-        print(f'done = {self.done}')
-        # print(observation)
+        self.done = (self.steps_taken == self.episode_len) 
 
-        return self.state, self.reward, self.done, {}
+        throughput = None
+
+        if self.done or self.evaluate_after_each_step:
+            # run the benchmark, set the reward to be the change in throughput
+            self.oltp_connector.run_data()
+
+            #NOTE: DESPITE THE NAMING SCHEME BELOW, TPCH USES LATENCIES FOR PERFORMANCE! BUT I WAS LAZY AND DIDN'T WANT TO CHANGE DUPLICATE THE CODE.
+            if bench == "tpch":
+                throughput = self.oltp_connector.get_latency()
+        
+                self.reward = (previous_throughput-throughput)/baseline_throughput
+
+                self.log(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
+                self.log(f'\n\t\t\treward: {self.reward}')
+
+                self.prev_throughput = throughput
+
+            else:
+                throughput = self.oltp_connector.get_throughput()
+            
+                self.reward = (throughput - self.prev_throughput)/self.baseline_throughput
+
+                self.log(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
+                self.log(f'\n\t\t\treward: {self.reward}')
+
+                self.prev_throughput = throughput
+        else:
+            self.reward = 0
+
+        return self.state, self.reward, self.done, {'throughput': throughput}
 
     def reset(self):
         self.episode += 1
         self.steps_taken = 0
         self.done = False
-        self.logger.write(f'\n\tepisode {self.episode}')
+        self.log(f'\n\tepisode {self.episode}')
         
         # reset parameter values
         self.postgres_connector.reset()
@@ -102,11 +127,15 @@ class PostgresEnvDiscrete(gym.Env):
         for param in self.parameters:
             param.reset(update_db=False)
 
+        # periodically reinit database
+        if (self.episode % 25) == 0:
+            self.postgres_connector.reinit_database(bench=self.bench)
+
         self.updated_restart_parameter = False
         
         self.state = np.array([param.current_val for param in self.parameters])
         
-        # self.oltp_connector.reinit_database()
+        # self.oltp_connector.reinit_database(bench=self.bench)
 
         # change this later to adjust for changing throughput over time
         self.prev_throughput = self.baseline_throughput
@@ -118,3 +147,7 @@ class PostgresEnvDiscrete(gym.Env):
 
     def close (self):
         pass
+    
+    def log(self, message):
+        self.logger.write(message)
+        print(message)

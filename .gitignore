@@ -1,2 +1,4 @@
 oltpbench
-log.txt
+log*.txt
+__pycache__/*
+*/__pycache__/*
