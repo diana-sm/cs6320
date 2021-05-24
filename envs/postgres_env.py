@@ -90,10 +90,10 @@ class PostgresEnvDiscrete(gym.Env):
             self.oltp_connector.run_data()
 
             #NOTE: DESPITE THE NAMING SCHEME BELOW, TPCH USES LATENCIES FOR PERFORMANCE! BUT I WAS LAZY AND DIDN'T WANT TO CHANGE DUPLICATE THE CODE.
-            if bench == "tpch":
+            if self.bench == "tpch":
                 throughput = self.oltp_connector.get_latency()
         
-                self.reward = (previous_throughput-throughput)/baseline_throughput
+                self.reward = (self.prev_throughput-throughput)/self.baseline_throughput
 
                 self.log(f'\n\t\t\tprev throughput: {self.prev_throughput}, new throughput: {throughput}')
                 self.log(f'\n\t\t\treward: {self.reward}')
