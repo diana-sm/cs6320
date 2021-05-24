@@ -23,7 +23,7 @@ throughputs = {}
 start_time = time.time()
 #NOTE: for some reason kilobytes needs a lowercase "k"-- be careful about this one
 #for i in ['"128 kB"', '"256 kB"', '"512 kB"', '"1 GB"', '"2 GB"', '"4 GB"', '"8 GB"']:
-for i in ['"8MB"', '"32MB"', '"128MB"', '"512MB"', '"2GB"']:
+for i in ['"8MB"', '"32MB"', '"64MB"', '"128MB"', '"256MB"', '"512MB"', '"1GB"','"2GB"']:
     #TODO: decide on better intervals (I just went with powers of two)
 
     
