@@ -12,3 +12,12 @@ Parameters configured include:
 * autovacuum_vacuum_threshold
 * fsync
 * synchronous_commit
+
+## Main Components
+* Configs: XML configuration files for TPCC and TPCH benchmarks
+* Connectors: API for training script to connect to the database and benchmarks
+* Envs: RL environments
+* Setup Scripts: scripts for loading TPCC and TPCH data into the database
+* parameter.py: classes representing Postgres configuration parameters
+* train.py: script for running the RL training and generating predictions using the trained agent
+* automator.py: manually tests benchmark performance for different parameter configurations
